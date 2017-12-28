@@ -1,43 +1,46 @@
-var displayError = () => $('#errors').html("I'm sorry, there's been an error. Please try again.")
+$(document).ready(function (){
+});
 
-var renderCommit = (commit) => {
-  return `<li><h3>${commit.sha}</h3><p>${commit.commit.message}</p></li>`
-}
-
-var renderCommits = (data) => {
-  let result = data.map((commit)=>renderCommit(commit)).join('')
-  return `<ul>${result}</ul>`
-}
-
-var showCommits = (el) => {
-  $.get(`https://api.github.com/repos/${el.dataset.owner}/${el.dataset.repository}/commits`, data => {
-    $('#details').html(renderCommits(data))
-  }).fail(error => {
+function searchRepositories() {
+  let input = $('#searchTerms').val();
+  $.get(`https://api.github.com/search/repositories?q=${input}`, function(response) {
+    $('#results').html(showRespositories(response))
+  }).fail(function(errors) {
     displayError()
   })
 }
 
-var renderSearchResult = (result) => {
-  return `
-      <div>
-        <h2><a href="${result.html_url}">${result.name}</a></h2>
-        <p><a href="#" data-repository="${result.name}" data-owner="${result.owner.login}" onclick="showCommits(this)">Show Commits</a></p>
-        <p>${result.description}</p>
-      </div>
-      <hr>
-    `
+function showRespositories(response) {
+  const repoList = '<ul>' + response.items.map(r => {
+    return (`
+     <li>
+       <h2><a href="${r.html_url}">${r.name}</a></h2>
+       <p>${r.description}</p>
+       <p><a href="#" data-repository="${r.name}" data-owner="${r.owner.login}" onclick="showCommits(this)">Show Commits</a></p>
+     </li>`
+     )
+    }).join('') + "</ul>"
+  document.getElementById("results").innerHTML = repoList
 }
 
-var renderSearchResults = (data) => data.items.map( result => renderSearchResult(result))
-
-var searchRepositories = () => {
-  const searchTerms = $('#searchTerms').val()
-  $.get(`https://api.github.com/search/repositories?q=${searchTerms}`, data => {
-      $('#results').html(renderSearchResults(data))
-    }).fail(error => {
-      displayError()
-    })
+function displayError() {
+  $('#errors').html("I'm sorry, there's been an error. Please try again.")
 }
 
-$(document).ready(function (){
-});
+function showCommits(el) {
+  const owner = el.dataset.owner
+  const repo = el.dataset.repository
+  $.get(`https://api.github.com/repos/${owner}/${repo}/commits`, function(response) {
+    console.log(response)
+    $('#details').html(renderCommits(response))
+  })
+}
+
+function renderCommits(response) {
+  let result = response.map((commit)=>renderCommit(commit)).join('')
+  return `<ul>${result}</ul>`
+}
+
+function renderCommit(commit) {
+  return `<li><h3>${commit.sha}</h3><p>${commit.commit.message}</p></li>`
+}
